@@ -1,0 +1,16 @@
+{
+  "name": "horseman-repl",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Tim Huff <timhuff@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "node-horseman": "^3.3.0",
+    "node-notifier": "^5.1.2",
+    "socket.io": "^2.0.3"
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}

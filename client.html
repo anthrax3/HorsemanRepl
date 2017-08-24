@@ -1,0 +1,164 @@
+<html>
+
+<head>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    #main {
+      width: 100vw;
+      height: calc(100vh - 100px);
+      background-color: black;
+      text-align: center;
+      position: relative;
+      overflow: scroll;
+    }
+
+    .instructions {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      text-align: center;
+    }
+
+    #screen {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    form {
+      width: calc(100vw - 10px);
+      height: 90px;
+      margin: 5px;
+    }
+
+    form div {
+      width: 100%;
+      height: 24px;
+      font-size: 18px;
+    }
+
+    #code {
+      width: 100%;
+      height: calc(100% - 24px);
+      font-size: 18px;
+      font-family: monospace;
+    }
+
+    #spinner {
+      position: absolute;
+      right: 5px;
+      top: 0;
+      width: 18px;
+      height: 18px;
+      font-size: 18px;
+      line-height: 18px;
+      text-align: center;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #spinner.spin {
+      animation-name: spin;
+      animation-duration: 1000ms;
+      animation-iteration-count: infinite;
+      animation-timing-function: linear;
+    }
+
+  </style>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+    crossorigin="anonymous"></script>
+</head>
+
+<body>
+  <div id="main">
+    <div class="instructions">Welcome to the Horseman REPL<br><code>horseman</code> has been initialized<br>Press &#8984;+Enter to execute code<br>Press
+      &#8984;+&#8593;/&#8595; to browse history</div>
+    <img id="screen" height="100%"></img>
+  </div>
+  <form>
+    <div style="position: relative;">
+      <code>horseman</code>
+      <div id="spinner">&#2039;</div>
+    </div>
+    <textarea id="code">.open('https://google.com')</textarea>
+  </form>
+  <script>
+    const socket = io('http://localhost:3333');
+    const cmdHistory = []
+    let cmdHistoryIndex = null
+    let waiting = true
+
+    const $main = $('#main')
+    const $codeInput = $('#code')
+    const $screen = $('#screen')
+    const $spinner = $('#spinner')
+
+    socket.on('ready', () => {
+      waiting = false
+    })
+    socket.emit('summon', {
+      width: $main.innerWidth(),
+      height: $main.innerHeight(),
+    })
+
+    $(document).on('keydown', (event) => {
+      if (waiting) return
+      // cmd + enter
+      if (event.keyCode === 13 && (event.ctrlKey || event.metaKey)) {
+        const codeInput = $codeInput.val()
+        $codeInput.val('')
+        cmdHistory.push(codeInput)
+        cmdHistoryIndex = null
+        var code = 'horseman\n' + codeInput
+        $spinner.addClass('spin')
+        waiting = true
+        socket.emit('execute', code);
+      }
+      // cmd + up
+      if (event.keyCode === 38 && (event.ctrlKey || event.metaKey)) {
+        cmdHistoryIndex = cmdHistoryIndex === null ? cmdHistory.length : cmdHistoryIndex
+        cmdHistoryIndex--
+        if (cmdHistoryIndex < 0) {
+          cmdHistoryIndex = 0
+          return
+        }
+        $codeInput.val(cmdHistory[cmdHistoryIndex])
+      }
+      // cmd + down
+      if (event.keyCode === 40 && (event.ctrlKey || event.metaKey)) {
+        if (cmdHistoryIndex === null) return
+        if (cmdHistoryIndex !== cmdHistory.length) {
+          cmdHistoryIndex++
+        }
+        $codeInput.val(cmdHistory[cmdHistoryIndex] || '')
+      }
+    })
+
+    socket.on('displayImage', (imageData) => {
+      $screen.attr('src', 'data:image/png;base64,' + imageData)
+      $spinner.removeClass('spin')
+      waiting = false
+    })
+
+  </script>
+</body>
+
+</html>
